@@ -1,103 +1,90 @@
-// Importando o módulo THREE.js
-import * as THREE from 'https://threejs.org/build/three.module.js';
+import * as THREE from 'three';
+import { SVGLoader } from '/js/js/three/SVGLoader.js';
 
-// Definindo constantes para a cena, câmera e cubo
-const SCENE_WIDTH = 800; // Largura da cena
-const SCENE_HEIGHT = 600; // Altura da cena
-const CAMERA_FIELD_OF_VIEW = 75; // Campo de visão da câmera
-const CAMERA_POSITION_Z = 5; // Posição da câmera no eixo Z
+// Cria um novo objeto de cena
+var scene = new THREE.Scene();
 
-// Função para criar a cena
-function createScene() {
-    // Cria uma nova cena
-    const scene = new THREE.Scene();
-    return scene; // Retorna a cena criada
-}
+// Cria uma câmera
+var camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+camera.position.z = 5;
 
-// Função para criar a câmera
-function createCamera() {
-    // Calcula a proporção da cena
-    const aspectRatio = SCENE_WIDTH / SCENE_HEIGHT;
-    // Cria uma nova câmera perspectiva
-    const camera = new THREE.PerspectiveCamera(CAMERA_FIELD_OF_VIEW, aspectRatio, 0.1, 100);
-    // Define a posição da câmera no eixo Z
-    camera.position.z = CAMERA_POSITION_Z;
-    return camera; // Retorna a câmera criada
-}
+// Cria um renderizador
+var renderer = new THREE.WebGLRenderer();
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
 
-// Função para criar o renderizador
-function createRenderer() {
-    // Cria um novo renderizador WebGL
-    const renderer = new THREE.WebGLRenderer();
-    // Define o tamanho do renderizador
-    renderer.setSize(SCENE_WIDTH, SCENE_HEIGHT);
-    // Adiciona o elemento do renderizador ao corpo do documento
-    document.body.appendChild(renderer.domElement);
-    return renderer; // Retorna o renderizador criado
-}
+// Cria um carregador SVG
+var loader = new SVGLoader();
 
-// Função principal
-function main() {
-    // Cria a cena
-    const scene = createScene();
-    // Cria a câmera
-    const camera = createCamera();
+// Armazena todas as partículas
+var particles = [];
 
-    // Cria o AxesHelper
-    const axesHelper = new THREE.AxesHelper(2);
-    scene.add(axesHelper); // Adiciona o AxesHelper à cena
+// Carrega o SVG
+loader.load('svg/Coracion.svg', function(data) {
 
-    // Cria um grupo
-    const group = new THREE.Group();
-    group.rotation.y = 0.2; // Define a rotação do grupo no eixo Y
-    scene.add(group); // Adiciona o grupo à cena
+    var group = new THREE.Group();
+    var paths = data.paths;
 
-    // Cria o primeiro cubo
-    const cube1 = new THREE.Mesh(
-        new THREE.BoxGeometry(1, 1, 1), // Define a geometria do cubo
-        new THREE.MeshBasicMaterial({ color: 0xff0000 }) // Define o material do cubo
-    );
-    cube1.position.x = -1.5; // Define a posição do cubo no eixo X
-    group.add(cube1); // Adiciona o cubo ao grupo
+    for (var i = 0; i < paths.length; i++) {
 
-    // Cria o segundo cubo
-    const cube2 = new THREE.Mesh(
-        new THREE.BoxGeometry(1, 1, 1), // Define a geometria do cubo
-        new THREE.MeshBasicMaterial({ color: 0xff0000 }) // Define o material do cubo
-    );
-    cube2.position.x = 0; // Define a posição do cubo no eixo X
-    group.add(cube2); // Adiciona o cubo ao grupo
+        var path = paths[i];
 
-    // Cria o terceiro cubo
-    const cube3 = new THREE.Mesh(
-        new THREE.BoxGeometry(1, 1, 1), // Define a geometria do cubo
-        new THREE.MeshBasicMaterial({ color: 0xff0000 }) // Define o material do cubo
-    );
-    cube3.position.x = 1.5; // Define a posição do cubo no eixo X
-    group.add(cube3); // Adiciona o cubo ao grupo
+        var material = new THREE.PointsMaterial({
+            color: 0xff0000,  // Cor fixa para teste
+            size: 0.1  // Tamanho maior para teste
+        });
 
-    // Cria o renderizador
-    const renderer = createRenderer();
+        var shapes = path.toShapes(true);
 
-    // Faz a câmera olhar para a posição do grupo
-    camera.lookAt(group.position);
+        for (var j = 0; j < shapes.length; j++) {
 
-    // Função de animação
-    function animate() {
-        // Move os cubos em direção ao centro
-        if (cube1.position.x < -0.1) cube1.position.x += 0.01;
-        if (cube3.position.x > 0.1) cube3.position.x -= 0.01;
+            var shape = shapes[j];
 
-        // Renderiza a cena
-        renderer.render(scene, camera);
+            // Cria um array para armazenar as posições das partículas
+            var positions = [];
 
-        // Solicita o próximo quadro de animação
-        requestAnimationFrame(animate);
+            // Loop através de cada ponto na forma
+            for (var k = 0; k < shape.getPoints().length; k++) {
+                var point = shape.getPoints()[k];
+
+                // Adiciona a posição do ponto ao array de posições
+                positions.push(point.x, point.y, point.z || 0);
+            }
+
+            // Cria uma nova BufferGeometry
+            var geometry = new THREE.BufferGeometry();
+
+            // Adiciona o array de posições como um atributo à geometria
+            geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+
+            var particle = new THREE.Points(geometry, material);
+
+            // Adiciona uma velocidade aleatória a cada partícula
+            particle.velocity = new THREE.Vector3(
+                (Math.random() - 0.5) * 0.7, // x
+                (Math.random() - 0.5) * 0.3, // y
+                (Math.random() - 0.5) * 0.2  // z
+            );
+            particles.push(particle);
+
+            group.add(particle);
+        }
     }
 
-    // Inicia a animação
-    animate();
-}
+    // Adicione o grupo à sua cena
+    scene.add(group);
+});
 
-// Chama a função principal
-main();
+// Animação
+function animate() {
+    requestAnimationFrame(animate);
+
+    // Atualiza a posição de cada partícula
+    for (var i = 0; i < particles.length; i++) {
+        particles[i].position.add(particles[i].velocity);
+        particles[i].geometry.attributes.position.needsUpdate = true;
+    }
+
+    renderer.render(scene, camera);
+}
+animate();

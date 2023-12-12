@@ -1,0 +1,28 @@
+@keyframes pulsar {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+body {
+    background-color: #4169e1;
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+.container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+#coracion {
+    width: 420px; /* Increased the width by 20px */
+    height: auto;
+    animation: pulsar 1s infinite;
+    margin: auto; /* Center the element within its container */
+}
